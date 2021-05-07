@@ -1,0 +1,39 @@
+---
+# tasks file for kubeadm-init
+- name: Check kubeconfig status
+  stat:
+    path: /home/vagrant/.kube
+  register: kubernetes_status
+- name: Cluster Init 
+  block:
+  - name: Disable swap
+    command: swapoff -a
+  - name: Initialize the Kubernetes Cluster using kubeadm
+    command: kubeadm init --control-plane-endpoint=172.18.0.1 --pod-network-cidr=192.168.0.0/16 --upload-certs
+  - name: Create a directory for Kubernetes Cluster configuration
+    become_user: vagrant
+    file:
+      path: ~/.kube
+      state: directory
+  - name: Copy file with cluster config
+    copy:
+      src: /etc/kubernetes/admin.conf
+      dest: /home/vagrant/.kube/config
+      remote_src: yes
+      owner: vagrant
+      group: vagrant
+  - name: Install Calico
+    command: kubectl create -f {{ item }}
+    loop:
+      - https://docs.projectcalico.org/manifests/tigera-operator.yaml
+      - https://docs.projectcalico.org/manifests/custom-resources.yaml
+    become_user: vagrant
+  when: not kubernetes_status.stat.exists
+  rescue:
+  - name: Reset kubeadm install
+    command: kubeadm reset -f
+  - name: Delete Kubernetes Cluster configuration
+    become_user: vagrant
+    file:
+      path: ~/.kube
+      state: absent

@@ -1,0 +1,6 @@
+- hosts: controlplane
+  become: yes
+  roles:
+    - docker
+    - kubernetes
+    - kubeadm-init
