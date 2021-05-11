@@ -1,6 +1,6 @@
 #!/bin/bash
-echo "Generate ssh keys"
-./keys/create_keys.sh keys
+#echo "Generate ssh keys"
+#./keys/create_keys.sh keys
 echo "Create Linux VM"
 vagrant up
 echo "Create nginx Load Balancer"

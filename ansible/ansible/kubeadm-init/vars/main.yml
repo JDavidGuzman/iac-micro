@@ -1,2 +1,5 @@
 ---
 # vars file for kubeadm-init
+#controlplane_ha: '--control-plane-endpoint=172.18.0.1'
+controlplane_ha: ''
+#controlplane_ip: 172.18.0.1

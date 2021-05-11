@@ -8,8 +8,11 @@
   block:
   - name: Disable swap
     command: swapoff -a
-  - name: Initialize the Kubernetes Cluster using kubeadm
-    command: kubeadm init --control-plane-endpoint=172.18.0.1 --pod-network-cidr=192.168.0.0/16 --upload-certs
+  - name: Generate Kubeadm Certificate Key
+    command: kubeadm certs certificate-key
+    register: certificate_key
+  - name: Initialize the Kubernetes Cluster with kubeadm
+    command: kubeadm init {{ controlplane_ha }} --pod-network-cidr=192.168.0.0/16 --upload-certs --certificate-key {{ certificate_key.stdout }} --apiserver-advertise-address {{ ansible_host }}
   - name: Create a directory for Kubernetes Cluster configuration
     become_user: vagrant
     file:
@@ -22,13 +25,19 @@
       remote_src: yes
       owner: vagrant
       group: vagrant
+  - name: Generate Discovery Token CA Hash
+    shell: openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+    register: token_hash
+  - name: Select Token 
+    shell: kubeadm token list | tail -n 2 | head -n 1 | cut -d " " -f 1
+    register: token 
   - name: Install Calico
     command: kubectl create -f {{ item }}
     loop:
       - https://docs.projectcalico.org/manifests/tigera-operator.yaml
       - https://docs.projectcalico.org/manifests/custom-resources.yaml
     become_user: vagrant
-  when: not kubernetes_status.stat.exists
+  when: not kubernetes_status.stat.exists and ansible_host == '192.168.33.10'
   rescue:
   - name: Reset kubeadm install
     command: kubeadm reset -f
@@ -37,3 +46,71 @@
     file:
       path: ~/.kube
       state: absent
+- name: Join master nodes to Control plane 
+  block:
+  - name: Disable swap
+    command: swapoff -a
+  - name: Join master node to Control Plane
+    command: kubeadm join 172.18.0.1:6443 --token {{ hostvars['master-0']['token'].stdout }} --discovery-token-ca-cert-hash sha256:{{ hostvars['master-0']['token_hash'].stdout }} --control-plane --certificate-key {{ hostvars['master-0']['certificate_key'].stdout }} --apiserver-advertise-address {{ ansible_host }}
+    register: rollback
+  - name: Create a directory for Kubernetes Cluster configuration
+    become_user: vagrant
+    file:
+      path: ~/.kube
+      state: directory
+  - name: Copy file with cluster config
+    copy:
+      src: /etc/kubernetes/admin.conf
+      dest: /home/vagrant/.kube/config
+      remote_src: yes
+      owner: vagrant
+      group: vagrant
+  when: ansible_host == '192.168.33.11' or ansible_host == '192.168.33.12'
+  rescue:
+  - name: Reset kubeadm install on control plane nodes
+    command: kubeadm reset -f
+  - name: Delete Kubernetes Cluster configuration
+    become_user: vagrant
+    file:
+      path: ~/.kube
+      state: absent
+- name: Reset principal master node if other nodes in control plane failed
+  block:
+  - name: Reset kubeadm install
+    command: kubeadm reset -f
+    register: controlplane_reset
+  - name: Delete Kubernetes Cluster configuration
+    become_user: vagrant
+    file:
+      path: ~/.kube
+      state: absent
+  when: ansible_host == '192.168.33.10' and ( hostvars['master-1']['rollback'].failed or hostvars['master-2']['rollback'].failed )
+  ignore_errors: yes
+- name: Join worker nodes
+  block:
+  - name: Disable swap
+    command: swapoff -a
+  - name: Join Worker node
+    command: kubeadm join {{ controlplane_ip }}:6443 --token {{ hostvars['master-0']['token'].stdout }} --discovery-token-ca-cert-hash sha256:{{ hostvars['master-0']['token_hash'].stdout }}
+    register: rollback_nodes
+  when: ansible_hostname in groups['workers']
+  rescue:
+  - name: Reset kubeadm install on control plane nodes
+    command: kubeadm reset -f
+  - name: Delete Kubernetes Cluster configuration
+    become_user: vagrant
+    file:
+      path: ~/.kube
+      state: absent
+- name: Reset principal master node if other nodes in control plane failed
+  block:
+  - name: Reset kubeadm install
+    command: kubeadm reset -f
+    register: rollback_nodes
+  - name: Delete Kubernetes Cluster configuration
+    become_user: vagrant
+    file:
+      path: ~/.kube
+      state: absent
+  when: ansible_host in groups['controlplane'] and ( hostvars['worker-0']['rollback_nodes'].failed or hostvars['master-1']['rollback_nodes].failed or hostvars['master-2']['rollback_nodes].failed )
+  ignore_errors: yes
