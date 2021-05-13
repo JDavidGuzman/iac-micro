@@ -2,3 +2,5 @@
 **/.vagrant/**
 vagrant/keys/*
 !vagrant/keys/create_keys.sh
+**/Vagrantfile
+**ubuntu*

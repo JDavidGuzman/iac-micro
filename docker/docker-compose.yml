@@ -1,12 +1,14 @@
 version: "3"
 services:
-  ansible:
-    container_name: ansible
+  ansible_vagrant:
+    container_name: ansible_vagrant
     build:
         context: .
     volumes:
       - ../vagrant/keys/key:/home/keys/key
-      - ./ansible:/home/ansible/
+      - ../ansible/:/home/ansible/
+    networks:
+      - ansible
     working_dir: /home/ansible/
     environment:
         - ANSIBLE_HOST_KEY_CHECKING=False
@@ -23,8 +25,10 @@ services:
     entrypoint: ['nginx','-g','daemon off;']
   
 networks:
+  ansible:
   balancer:
     ipam:
       config:
         - subnet: 172.18.0.1/24
+  
     

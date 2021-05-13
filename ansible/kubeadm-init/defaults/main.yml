@@ -1,0 +1,4 @@
+---
+# defaults file for kubeadm-init
+controlplane_ha: ''
+controlplane_ip: 192.168.33.10
