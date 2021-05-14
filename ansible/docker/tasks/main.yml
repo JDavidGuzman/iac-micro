@@ -1,0 +1,73 @@
+---
+- name: iptables configuration doc 
+  copy:
+    src: ../templates/k8s.conf
+    dest: /etc/modules-load.d/k8s.conf
+- name: iptables configuration doc2
+  copy:
+    src: ../templates/k8s.conf2
+    dest: /etc/sysctl.d/k8s.conf
+- name: iptables configuration reload
+  command: sysctl -p --system
+- name: Install Docker on Redhat 
+  block:
+  - name: Add Docker repository 
+    yum_repository:
+      name: docker-ce-stable
+      description: Docker CE Stable - $basearch
+      baseurl: https://download.docker.com/linux/centos/$releasever/$basearch/stable
+      enabled: yes
+      gpgcheck: yes
+      repo_gpgcheck: yes
+      gpgkey: https://download.docker.com/linux/centos/gpg
+  - name: Install Docker
+    yum:
+      name:
+        - docker-ce 
+        - docker-ce-cli 
+        - containerd.io
+      update_cache: yes
+      state: latest
+  when: ansible_os_family == 'RedHat' or ansible_distribution == 'Amazon'
+- name: Install Docker on Debian
+  block:
+  - name: Add Docker GPG
+    apt_key:
+      url: https://download.docker.com/linux/debian/gpg
+      keyring: /usr/share/keyrings/docker-archive-keyring.gpg
+      state: present
+  - name: Add docker repository
+    apt_repository:
+      repo: deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian buster stable
+      state: present
+      filename: docker
+      update_cache: no
+  - name: Install Docker
+    apt:
+      name:
+        - docker-ce 
+        - docker-ce-cli 
+        - containerd.io
+      update_cache: yes
+      state: latest
+      force_apt_get: yes
+  when: ansible_os_family == 'Debian'
+- name: Add vagrant user to docker group
+  user:
+    name: vagrant
+    groups: docker
+    append: yes
+- name: Start docker service, if not started
+  service:
+    name: docker
+    state: started
+- name: cgroup configuration 
+  copy:
+    src: ../templates/daemon.json
+    dest: /etc/docker/daemon.json
+- name: Restart Docker
+  systemd:
+    state: restarted
+    name: docker
+    daemon_reload: yes
+    enabled: yes

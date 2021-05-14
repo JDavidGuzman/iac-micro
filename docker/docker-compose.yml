@@ -1,0 +1,34 @@
+version: "3"
+services:
+  ansible_vagrant:
+    container_name: ansible_vagrant
+    build:
+        context: .
+    volumes:
+      - ../vagrant/keys/key:/home/keys/key
+      - ../ansible/:/home/ansible/
+    networks:
+      - ansible
+    working_dir: /home/ansible/
+    environment:
+        - ANSIBLE_HOST_KEY_CHECKING=False
+  
+  nginx_lb:
+    container_name: nginx_lb
+    image: nginx:1.19.10-alpine
+    networks:
+      - balancer
+    ports:
+      - "6443:6443"
+    volumes:
+      - ../nginx/nginx_lb.conf:/etc/nginx/nginx.conf
+    entrypoint: ['nginx','-g','daemon off;']
+  
+networks:
+  ansible:
+  balancer:
+    ipam:
+      config:
+        - subnet: 172.18.0.1/24
+  
+    

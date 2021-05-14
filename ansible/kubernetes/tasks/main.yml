@@ -1,0 +1,52 @@
+---
+# tasks file for kubernetes
+- name: Install Kubernetes on Redhat
+  block:
+  - name: Add Kubernetes repository
+    yum_repository:
+      name: kubernetes
+      description: Kubernetes
+      baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+      enabled: yes
+      gpgcheck: yes
+      repo_gpgcheck: yes
+      gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      exclude: kubelet kubeadm kubectl
+  - name: Install Kubernetes components
+    yum:
+      name: 
+        - kubeadm
+        - kubelet
+        - kubectl
+      disable_excludes: kubernetes
+      update_cache: yes
+      state: latest
+  when: ansible_os_family == 'RedHat' or ansible_distribution == 'Amazon'
+- name: Install Kubernetes on Debian
+  block:
+  - name: Add Kubernetes GPG
+    apt_key:
+      url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+      keyring: /usr/share/keyrings/kubernetes-archive-keyring.gpg
+      state: present
+  - name: Add docker repository
+    apt_repository:
+      repo: "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main"
+      state: present
+      filename: docker
+      update_cache: no
+  - name: Install Kubernetes components
+    apt:
+      name: 
+        - kubeadm
+        - kubelet
+        - kubectl
+      update_cache: yes
+      state: latest
+      force_apt_get: yes
+  when: ansible_os_family == 'Debian'
+- name: Start kubelet, if not started
+  service:
+    name: kubelet
+    enabled: yes
+    state: started
