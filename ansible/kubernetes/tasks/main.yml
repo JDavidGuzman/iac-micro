@@ -21,7 +21,7 @@
       disable_excludes: kubernetes
       update_cache: yes
       state: latest
-  when: ansible_os_family == 'RedHat' or ansible_distribution == 'Amazon'
+  when: ansible_os_family == 'RedHat'
 - name: Install Kubernetes on Debian
   block:
   - name: Add Kubernetes GPG

@@ -59,7 +59,7 @@ function worker_nodes {
     vb.cpus = 2
   end
 
-  config.vm.provision "file", source: "keys/key.pub", destination: "$HOME/.ssh/authorized_keys"' >> $DIR/Vagrantfile
+  config.vm.provision "file", source: "../vagrant/keys/key.pub", destination: "$HOME/.ssh/authorized_keys"' >> $DIR/Vagrantfile
 
   echo "end" >> $DIR/Vagrantfile
 }

@@ -1,0 +1,11 @@
+plugin: aws_ec2
+regions:
+  - us-east-1
+hostnames:
+  - tag:Name=iac-micro-default-master-0
+groups:
+  controlplane: "'master' in (inventory_hostname)"
+  workers: "'worker' in (inventory_hostname)"
+compose:
+  node_ip: private_ip_address
+  ansible_host: public_ip_address
