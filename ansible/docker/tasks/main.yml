@@ -28,7 +28,7 @@
         - containerd.io
       update_cache: yes
       state: latest
-  when: ansible_os_family == 'RedHat' or ansible_distribution == 'Amazon'
+  when: ansible_os_family == 'RedHat'
 - name: Install Docker on Debian
   block:
   - name: Add Docker GPG
@@ -52,9 +52,9 @@
       state: latest
       force_apt_get: yes
   when: ansible_os_family == 'Debian'
-- name: Add vagrant user to docker group
+- name: Add user to docker group
   user:
-    name: vagrant
+    name: "{{ ansible_user }}"
     groups: docker
     append: yes
 - name: Start docker service, if not started

@@ -2,7 +2,7 @@
 # tasks file for kubeadm-init
 - name: Check kubeconfig status
   stat:
-    path: /home/vagrant/.kube
+    path: /home/"{{ ansible_user }}"/.kube
   register: kubernetes_status
 - name: Disable swap
   command: swapoff -a
@@ -12,19 +12,19 @@
     command: kubeadm certs certificate-key
     register: certificate_key
   - name: Initialize the Kubernetes Cluster with kubeadm
-    command: kubeadm init {{ controlplane_ha }} --pod-network-cidr=192.168.0.0/16 --upload-certs --certificate-key {{ certificate_key.stdout }} --apiserver-advertise-address {{ ansible_host }}  
+    command: kubeadm init {{ controlplane_ha }} --pod-network-cidr=192.168.0.0/16 --upload-certs --certificate-key {{ certificate_key.stdout }} --apiserver-advertise-address {{ node_ip }}  
   - name: Create a directory for Kubernetes Cluster configuration
-    become_user: vagrant
+    become_user: "{{ ansible_user }}"
     file:
       path: ~/.kube
       state: directory
   - name: Copy file with cluster config
     copy:
       src: /etc/kubernetes/admin.conf
-      dest: /home/vagrant/.kube/config
+      dest: "/home/{{ ansible_user }}/.kube/config"
       remote_src: yes
-      owner: vagrant
-      group: vagrant
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
   - name: Generate Discovery Token CA Hash
     shell: openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
     register: token_hash
@@ -36,25 +36,25 @@
     loop:
       - https://docs.projectcalico.org/manifests/tigera-operator.yaml
       - https://docs.projectcalico.org/manifests/custom-resources.yaml
-    become_user: vagrant
-  when: not kubernetes_status.stat.exists and inventory_hostname == 'master-0'
+    become_user: "{{ ansible_user }}"
+  when: not kubernetes_status.stat.exists and ('master-0' in inventory_hostname)
 - name: Join master nodes to Control plane 
   block:
   - name: Join master nodes to Control Plane
-    command: kubeadm join 172.18.0.1:6443 --token {{ hostvars['master-0']['token'].stdout }} --discovery-token-ca-cert-hash sha256:{{ hostvars['master-0']['token_hash'].stdout }} --control-plane --certificate-key {{ hostvars['master-0']['certificate_key'].stdout }} --apiserver-advertise-address {{ ansible_host }}
+    command: kubeadm join 172.18.0.1:6443 --token {{ hostvars['master-0']['token'].stdout }} --discovery-token-ca-cert-hash sha256:{{ hostvars['master-0']['token_hash'].stdout }} --control-plane --certificate-key {{ hostvars['master-0']['certificate_key'].stdout }} --apiserver-advertise-address {{ node_ip }}
   - name: Create a directory for Kubernetes Cluster configuration
-    become_user: vagrant
+    become_user: "{{ ansible_user }}"
     file:
       path: ~/.kube
       state: directory
   - name: Copy file with cluster config
     copy:
       src: /etc/kubernetes/admin.conf
-      dest: /home/vagrant/.kube/config
+      dest: /home/"{{ ansible_user }}"/.kube/config
       remote_src: yes
-      owner: vagrant
-      group: vagrant
-  when: inventory_hostname == 'master-1' or inventory_hostname == 'master-2'
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+  when: ('master-1' in inventory_hostname) or ('master-2' in inventory_hostname)
 - name: Join Worker nodes
   command: kubeadm join {{ controlplane_ip }}:6443 --token {{ hostvars['master-0']['token'].stdout }} --discovery-token-ca-cert-hash sha256:{{ hostvars['master-0']['token_hash'].stdout }} 
   when: ansible_hostname in groups['workers']
@@ -62,7 +62,7 @@
   shell: cat /var/lib/kubelet/kubeadm-flags.env | cut -d '"' -f 2
   register: kubelet_vars
 - name: Edit Config 
-  shell: echo 'KUBELET_KUBEADM_ARGS="{{ kubelet_vars.stdout }} --node-ip={{ ansible_host }}"' >  /var/lib/kubelet/kubeadm-flags.env
+  shell: echo 'KUBELET_KUBEADM_ARGS="{{ kubelet_vars.stdout }} --node-ip={{ node_ip }}"' >  /var/lib/kubelet/kubeadm-flags.env
 - name: Restart Docker
   systemd:
     state: restarted

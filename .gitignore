@@ -1,6 +1,25 @@
-#Vagrant
+### Vagrant ###
 **/.vagrant/**
-vagrant/keys/*
-!vagrant/keys/create_keys.sh
 **/Vagrantfile
-**ubuntu*
+### Terraform ###
+# Local .terraform directories
+**/.terraform/*
+# .tfstate files
+*.tfstate
+*.tfstate.*
+# Crash log files
+crash.log
+#tfvars
+.tfvars
+terraform.tfvars
+# Ignore override files as they are usually used to override resources
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+# lock.hcl
+**lock.hcl
+### keys ###
+**/keys/*
+### Ansible ###
+gen_vars.yml
