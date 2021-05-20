@@ -29,7 +29,7 @@ then
     ssh-keygen -N '' -q -f vagrant/keys/key
     echo "Init Kubernetes Cluster Menu"
     sleep 1
-    bash vagrant/scripts/menu.sh vagrant
+    bash vagrant/scripts/menu.sh 
     echo "Create Linux VM"
     cd vagrant
     vagrant up
@@ -40,16 +40,17 @@ then
     ssh -l vagrant -i keys/key 192.168.33.10
 elif [ $ENVIRONMENT -eq 2 ]
 then
-    cp /dev/null ansible/group_vars/all.yml
     echo "---
 ansible_user: centos
-ansible_ssh_private_key_file: ../terraform/keys/key" >> ansible/group_vars/all.yml
+ansible_ssh_private_key_file: ../terraform/keys/key" > ansible/group_vars/all.yml
     echo "Generate ssh keys"
     if [ ! -d terraform/keys ]
     then   
         mkdir terraform/keys 
     fi
     ssh-keygen -N '' -q -f terraform/keys/key
+    sleep 1
+    bash terraform/scripts/menu.sh
     echo "Create AWS environment"
     docker-compose -f docker/docker-compose.yml run --rm terraform apply -auto-approve
     echo "Initiate provisioning with Ansible"

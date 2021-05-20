@@ -55,9 +55,13 @@
       owner: "{{ ansible_user }}"
       group: "{{ ansible_user }}"
   when: ('master-1' in inventory_hostname) or ('master-2' in inventory_hostname)
-- name: Join Worker nodes
+- name: Join Worker nodes Vagrant
   command: kubeadm join {{ controlplane_ip }}:6443 --token {{ hostvars['master-0']['token'].stdout }} --discovery-token-ca-cert-hash sha256:{{ hostvars['master-0']['token_hash'].stdout }} 
-  when: ansible_hostname in groups['workers']
+  register: vagrant_join
+  when: (ansible_host == "192.168.33.20") or (ansible_host == "192.168.33.21") or (ansible_host == "192.168.33.22")
+- name: Join Worker nodes AWS
+  command: kubeadm join {{ hostvars['Name_iac-micro-default-master-0']['node_ip'] }}:6443 --token {{ hostvars['Name_iac-micro-default-master-0']['token'].stdout }} --discovery-token-ca-cert-hash sha256:{{ hostvars['Name_iac-micro-default-master-0']['token_hash'].stdout }} 
+  when: inventory_hostname in groups['workers'] and not vagrant_join.changed
 - name: Gather configuration
   shell: cat /var/lib/kubelet/kubeadm-flags.env | cut -d '"' -f 2
   register: kubelet_vars
