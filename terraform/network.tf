@@ -1,5 +1,5 @@
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
 
@@ -19,13 +19,14 @@ resource "aws_internet_gateway" "main" {
   )
 }
 
-# Public Subnets
 resource "aws_subnet" "main" {
+  for_each = var.az
+
   vpc_id = aws_vpc.main.id
 
-  cidr_block              = "10.0.1.0/24"
+  cidr_block              = "10.0.${each.value}.0/24"
   map_public_ip_on_launch = true
-  availability_zone       = "${data.aws_region.current.name}a"
+  availability_zone       = "${data.aws_region.current.name}${each.key}"
 
   tags = merge(
     local.common_tags,
@@ -47,7 +48,9 @@ resource "aws_route_table" "main" {
   )
 }
 
-resource "aws_route_table_association" "a" {
-  subnet_id      = aws_subnet.main.id
+resource "aws_route_table_association" "main" {
+  for_each = var.az
+
+  subnet_id      = aws_subnet.main[each.key].id
   route_table_id = aws_route_table.main.id
 }

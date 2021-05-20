@@ -3,6 +3,11 @@ regions:
   - us-east-1
 hostnames:
   - tag:Name=iac-micro-default-master-0
+  - tag:Name=iac-micro-default-master-1
+  - tag:Name=iac-micro-default-master-2
+  - tag:Name=iac-micro-default-worker-0
+  - tag:Name=iac-micro-default-worker-1
+  - tag:Name=iac-micro-default-worker-2
 groups:
   controlplane: "'master' in (inventory_hostname)"
   workers: "'worker' in (inventory_hostname)"

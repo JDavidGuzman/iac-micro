@@ -10,6 +10,4 @@ Minimum two virtual machines will be required; one for a Master node and another
 
 ## AWS
 
-As stated before, in order to run AWS option; terraform is required.
-
-This option will setup a Kubernetes cluster on AWS infrastructure using t3.small EC2 instances as nodes, which fulfil the minimum requirements stablish by Kubernetes documenation. 
+This option will set up a Kubernetes cluster on AWS infrastructure using t3.small EC2 instances as nodes, which fulfill the minimum requirements established by Kubernetes documentation. Each node will be located on the control plane group or on the worker's groups and depending on the number of nodes on each group it will run on a different Availability Zone.

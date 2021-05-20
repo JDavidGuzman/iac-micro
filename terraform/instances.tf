@@ -1,4 +1,4 @@
-data "aws_ami" "amazon_linux" {
+data "aws_ami" "linux" {
   most_recent = true
   filter {
     name   = "name"
@@ -33,6 +33,13 @@ resource "aws_security_group" "main" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    self      = true
+  }
+
   egress {
     protocol    = "tcp"
     from_port   = 443
@@ -47,6 +54,13 @@ resource "aws_security_group" "main" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  egress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    self      = true
+  }
+
   tags = merge(
     local.common_tags,
     tomap({ "Name" = "${local.prefix}-kubernetes" })
@@ -59,11 +73,13 @@ resource "aws_key_pair" "main" {
   public_key = file("keys/key.pub")
 }
 
-resource "aws_instance" "main" {
-  ami           = data.aws_ami.amazon_linux.id
+resource "aws_instance" "master" {
+  for_each = var.master_num
+
+  ami           = data.aws_ami.linux.id
   instance_type = "t3.small"
   key_name      = aws_key_pair.main.key_name
-  subnet_id     = aws_subnet.main.id
+  subnet_id     = aws_subnet.main[each.key].id
 
   vpc_security_group_ids = [
     aws_security_group.main.id
@@ -73,16 +89,44 @@ resource "aws_instance" "main" {
     inline = ["echo 'Wait until SSH is ready'"]
 
     connection {
-      type = "ssh"
-      user = var.ssh_user
+      type        = "ssh"
+      user        = var.ssh_user
       private_key = file("keys/key")
-      host = aws_instance.main.public_ip
+      host        = self.public_ip
     }
   }
 
   tags = merge(
     local.common_tags,
-    tomap({ "Name" = "${local.prefix}-master-0" })
+    tomap({ "Name" = "${local.prefix}-master-${each.value}" })
   )
 }
 
+resource "aws_instance" "worker" {
+  for_each = var.worker_num
+
+  ami           = data.aws_ami.linux.id
+  instance_type = "t3.small"
+  key_name      = aws_key_pair.main.key_name
+  subnet_id     = aws_subnet.main[each.key].id
+
+  vpc_security_group_ids = [
+    aws_security_group.main.id
+  ]
+
+  provisioner "remote-exec" {
+    inline = ["echo 'Wait until SSH is ready'"]
+
+    connection {
+      type        = "ssh"
+      user        = var.ssh_user
+      private_key = file("keys/key")
+      host        = self.public_ip
+    }
+  }
+
+  tags = merge(
+    local.common_tags,
+    tomap({ "Name" = "${local.prefix}-worker-${each.value}" })
+  )
+}

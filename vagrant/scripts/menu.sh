@@ -1,18 +1,16 @@
 #!/bin/bash
 
-DIR=$1
-
 function master_nodes {
-    cp /dev/null $DIR/Vagrantfile
-    echo 'Vagrant.configure("2") do |config|' >> $DIR/Vagrantfile
-    echo >> $DIR/Vagrantfile
+    cp /dev/null vagrant/Vagrantfile
+    echo 'Vagrant.configure("2") do |config|' >> vagrant/Vagrantfile
+    echo >> vagrant/Vagrantfile
     if [ $1 -eq 1 ]
     then
     echo 'config.vm.define "master-0" do |master|
     master.vm.box = "placeholder"
     master.vm.hostname = "master-0"
     master.vm.network "private_network", ip: "192.168.33.10"
-  end' >> $DIR/Vagrantfile
+  end' >> vagrant/Vagrantfile
     echo "---
 # vars file for kubeadm-init" > ansible/kubeadm-init/vars/main.yml
     elif [ $1 -eq 2 ]
@@ -23,7 +21,7 @@ function master_nodes {
       master.vm.hostname = "master-#{i}"
       master.vm.network "private_network", ip: "192.168.33.1#{i}"
     end
-  end' >> $DIR/Vagrantfile
+  end' >> vagrant/Vagrantfile
     echo "---
 # vars file for kubeadm-init
 controlplane_ha: '--control-plane-endpoint=172.18.0.1'
@@ -34,38 +32,38 @@ controlplane_ip: 172.18.0.1" > ansible/kubeadm-init/vars/main.yml
 }
 
 function worker_nodes {
-    echo >> $DIR/Vagrantfile
+    echo >> vagrant/Vagrantfile
     if [ $1 -eq 1 ]
     then
     echo 'config.vm.define "worker-0" do |worker|
     worker.vm.box = "placeholder"
     worker.vm.hostname = "worker-0"
     worker.vm.network "private_network", ip: "192.168.33.20"
-  end' >> $DIR/Vagrantfile
+  end' >> vagrant/Vagrantfile
     elif [ $1 -eq 2 ] || [ $1 -eq 3 ]
     then
-    echo "(0..$[$1-1]).each do |i|" >> $DIR/Vagrantfile
+    echo "(0..$[$1-1]).each do |i|" >> vagrant/Vagrantfile
     echo 'config.vm.define "worker-#{i}" do |worker|
       worker.vm.box = "placeholder"
       worker.vm.hostname = "worker-#{i}"
       worker.vm.network "private_network", ip: "192.168.33.2#{i}"
     end
-  end' >> $DIR/Vagrantfile
+  end' >> vagrant/Vagrantfile
     fi
 
-    echo >> $DIR/Vagrantfile
+    echo >> vagrant/Vagrantfile
     echo 'config.vm.provider "virtualbox" do |vb|
     vb.memory = "2000"
     vb.cpus = 2
   end
 
-  config.vm.provision "file", source: "../vagrant/keys/key.pub", destination: "$HOME/.ssh/authorized_keys"' >> $DIR/Vagrantfile
+  config.vm.provision "file", source: "../vagrant/keys/key.pub", destination: "$HOME/.ssh/authorized_keys"' >> vagrant/Vagrantfile
 
-  echo "end" >> $DIR/Vagrantfile
+  echo "end" >> vagrant/Vagrantfile
 }
 
 function linux_distribution {
-    sed -i "s/placeholder/$1/" $DIR/Vagrantfile
+    sed -i "s/placeholder/$1/" vagrant/Vagrantfile
 }
 
 
