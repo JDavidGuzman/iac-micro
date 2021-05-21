@@ -109,7 +109,7 @@ do
 done
 clear
 
-echo "Number of Master Nodes?"
+echo "OS Linux Distribution?"
 PS3="Enter option: "
 select option in "CentOS" "Ubuntu" 
 do

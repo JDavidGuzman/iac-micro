@@ -53,6 +53,22 @@ ansible_ssh_private_key_file: ../terraform/keys/key" > ansible/group_vars/all.ym
     bash terraform/scripts/menu.sh
     echo "Create AWS environment"
     docker-compose -f docker/docker-compose.yml run --rm terraform apply -auto-approve
+    sleep 1
+    echo "Retrieve Load Balancer IP addresses"
+    ELB=$(cat terraform/load_balancer.tf | head -n 1 | awk '{print $1}')
+    if test $ELB 
+    then
+        CONTROLPLANE_IP=$(docker-compose -f docker/docker-compose.yml run --rm terraform output nlb)
+        echo "---
+# vars file for kubeadm-init
+controlplane_ha: '--control-plane-endpoint=$CONTROLPLANE_IP'
+controlplane_ip: $CONTROLPLANE_IP" > ansible/kubeadm-init/vars/main.yml
+    fi
     echo "Initiate provisioning with Ansible"
-    docker-compose -f docker/docker-compose.yml run --rm ansible ansible-playbook -i aws_ec2.yml playbook.yml
+    docker-compose -f docker/docker-compose.yml run --rm ansible ansible-playbook -i aws_ec2.yml playbook.yml 
+    if test $ELB 
+    then 
+        echo "Connecting to Kubernetes Cluster"
+        ssh -l vagrant -i keys/key $SSH_IP 
+    fi
 fi

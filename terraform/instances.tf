@@ -2,14 +2,14 @@ data "aws_ami" "linux" {
   most_recent = true
   filter {
     name   = "name"
-    values = ["CentOS 7*"]
+    values = [var.ami]
   }
   owners = ["amazon"]
 }
 
-resource "aws_security_group" "main" {
+resource "aws_security_group" "k8s" {
   description = "Control kubernetes inbound and outbound access"
-  name        = "${local.prefix}-kubernetes-sg"
+  name        = "${local.prefix}-master-sg"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -21,6 +21,13 @@ resource "aws_security_group" "main" {
 
   ingress {
     protocol    = "tcp"
+    from_port   = 80
+    to_port     = 80
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol    = "tcp"
     from_port   = 443
     to_port     = 443
     cidr_blocks = ["0.0.0.0/0"]
@@ -28,8 +35,8 @@ resource "aws_security_group" "main" {
 
   ingress {
     protocol    = "tcp"
-    from_port   = 80
-    to_port     = 80
+    from_port   = 6443
+    to_port     = 6443
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -42,6 +49,13 @@ resource "aws_security_group" "main" {
 
   egress {
     protocol    = "tcp"
+    from_port   = 80
+    to_port     = 80
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    protocol    = "tcp"
     from_port   = 443
     to_port     = 443
     cidr_blocks = ["0.0.0.0/0"]
@@ -49,8 +63,8 @@ resource "aws_security_group" "main" {
 
   egress {
     protocol    = "tcp"
-    from_port   = 80
-    to_port     = 80
+    from_port   = 6443
+    to_port     = 6443
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -61,11 +75,30 @@ resource "aws_security_group" "main" {
     self      = true
   }
 
-  tags = merge(
-    local.common_tags,
-    tomap({ "Name" = "${local.prefix}-kubernetes" })
-  )
+  tags = local.common_tags
+}
 
+
+resource "aws_security_group" "nodeport" {
+  description = "Control kubernetes inbound and outbound access"
+  name        = "${local.prefix}-nodeport-sg"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    protocol    = "tcp"
+    from_port   = 30000
+    to_port     = 32767
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    protocol    = "tcp"
+    from_port   = 30000
+    to_port     = 32767
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = local.common_tags
 }
 
 resource "aws_key_pair" "main" {
@@ -82,7 +115,7 @@ resource "aws_instance" "master" {
   subnet_id     = aws_subnet.main[each.key].id
 
   vpc_security_group_ids = [
-    aws_security_group.main.id
+    aws_security_group.k8s.id
   ]
 
   provisioner "remote-exec" {
@@ -111,7 +144,8 @@ resource "aws_instance" "worker" {
   subnet_id     = aws_subnet.main[each.key].id
 
   vpc_security_group_ids = [
-    aws_security_group.main.id
+     aws_security_group.k8s.id,
+    aws_security_group.nodeport.id
   ]
 
   provisioner "remote-exec" {
