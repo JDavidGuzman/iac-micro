@@ -2,7 +2,7 @@
 # tasks file for kubeadm-init
 - name: Check kubeconfig status
   stat:
-    path: /home/"{{ ansible_user }}"/.kube
+    path: "/home/{{ ansible_user }}/.kube"
   register: kubernetes_status
 - name: Disable swap
   command: swapoff -a
@@ -40,8 +40,12 @@
   when: not kubernetes_status.stat.exists and ('master-0' in inventory_hostname)
 - name: Join master nodes to Control plane 
   block:
-  - name: Join master nodes to Control Plane
+  - name: Join master nodes to Control Plane Vagrant
     command: kubeadm join 172.18.0.1:6443 --token {{ hostvars['master-0']['token'].stdout }} --discovery-token-ca-cert-hash sha256:{{ hostvars['master-0']['token_hash'].stdout }} --control-plane --certificate-key {{ hostvars['master-0']['certificate_key'].stdout }} --apiserver-advertise-address {{ node_ip }}
+    when: (ansible_host == "192.168.33.11") or (ansible_host == "192.168.33.12")
+  - name: Join master nodes to Control Plane AWS
+    command: kubeadm join {{ controlplane_ip }}:6443 --token {{ hostvars['Name_iac-micro-default-master-0']['token'].stdout }} --discovery-token-ca-cert-hash sha256:{{ hostvars['Name_iac-micro-default-master-0']['token_hash'].stdout }} --control-plane --certificate-key {{ hostvars['Name_iac-micro-default-master-0']['certificate_key'].stdout }} --apiserver-advertise-address {{ node_ip }}
+    when: (inventory_hostname == 'Name_iac-micro-default-master-1' ) or (inventory_hostname == 'Name_iac-micro-default-master-2')
   - name: Create a directory for Kubernetes Cluster configuration
     become_user: "{{ ansible_user }}"
     file:
@@ -50,7 +54,7 @@
   - name: Copy file with cluster config
     copy:
       src: /etc/kubernetes/admin.conf
-      dest: /home/"{{ ansible_user }}"/.kube/config
+      dest: "/home/{{ ansible_user }}/.kube/config"
       remote_src: yes
       owner: "{{ ansible_user }}"
       group: "{{ ansible_user }}"
