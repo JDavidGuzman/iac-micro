@@ -2,7 +2,7 @@ data "aws_ami" "linux" {
   most_recent = true
   filter {
     name   = "name"
-    values = ["CentOS 7*"]
+    values = [var.ami]
   }
   owners = ["amazon"]
 }

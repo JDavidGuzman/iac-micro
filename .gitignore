@@ -22,6 +22,5 @@ override.tf.json
 ### keys ###
 **/keys/*
 ### Ansible ###
-**/group_vars/all.yml
 ansible/test.yml
 ansible/clean.yml

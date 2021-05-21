@@ -23,3 +23,9 @@ variable "worker_num" {
   description = "number of worker nodes"
   default     = { a = 0 }
 }
+
+variable "ami" {
+  type = string
+  description = "regex for query an ami"
+  default = "CentOS 7*"
+}
