@@ -3,7 +3,7 @@ services:
   ansible:
     container_name: ansible
     build:
-        context: .
+        context: ./ansible
     volumes:
       - ../ansible/:/home/ansible/
       - ../vagrant/keys/key:/home/vagrant/keys/key
@@ -39,6 +39,19 @@ services:
     - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
     - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+
+  kubectl:
+    container_name: kubectl
+    build:
+        context: ./kubectl
+    volumes:
+      - ../kubernetes/kubectl/config:/home/.kube/config
+      - ../kubernetes/kustomize:/home/kustomize
+    networks:
+      - kubectl
+    working_dir: /home/kustomize
+    environment:
+      - KUBECONFIG=/home/.kube/config
   
 networks:
   ansible:
@@ -47,3 +60,4 @@ networks:
       config:
         - subnet: 172.18.0.1/24
   terraform:
+  kubectl:

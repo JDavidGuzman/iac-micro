@@ -24,3 +24,7 @@ override.tf.json
 ### Ansible ###
 ansible/test.yml
 ansible/clean.yml
+### Kubernetes ###
+*/kubectl/config
+### Jenkins ###
+jenkins/*

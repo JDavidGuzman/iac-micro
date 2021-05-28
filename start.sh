@@ -37,7 +37,13 @@ then
     cd ..
     docker-compose -f docker/docker-compose.yml run --rm ansible ansible-playbook -i inventory.yml playbook.yml
     echo "Connecting to Kubernetes Cluster"
-    ssh -l vagrant -i keys/key 192.168.33.10
+    if [ ! -d kubernetes/kubectl]
+    then 
+        mkdir kubernetes/kubectl
+    fi
+    ssh-keygen -f "/home/aiwass/.ssh/known_hosts" -R "192.168.33.10"
+    scp -i vagrant/keys/key vagrant@192.168.33.10:/home/vagrant/.kube/config kubernetes/kubectl
+    docker-compose -f docker/docker-compose.yml run --rm kubectl sh
 elif [ $ENVIRONMENT -eq 2 ]
 then
     echo "---

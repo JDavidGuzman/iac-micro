@@ -118,6 +118,10 @@ resource "aws_instance" "master" {
     aws_security_group.k8s.id
   ]
 
+  root_block_device  {
+    delete_on_termination = true
+  }
+
   provisioner "remote-exec" {
     inline = ["echo 'Wait until SSH is ready'"]
 
@@ -147,6 +151,10 @@ resource "aws_instance" "worker" {
      aws_security_group.k8s.id,
     aws_security_group.nodeport.id
   ]
+
+  root_block_device {
+    delete_on_termination = true
+  }
 
   provisioner "remote-exec" {
     inline = ["echo 'Wait until SSH is ready'"]
